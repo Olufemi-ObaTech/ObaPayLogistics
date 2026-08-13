@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\Authenticate;
+use App\Http\Middleware\CamelCaseResponse;
 use App\Http\Middleware\EnsureActiveUser;
 use App\Http\Middleware\Idempotent;
 use Illuminate\Auth\AuthenticationException;
@@ -27,9 +28,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'idempotent' => Idempotent::class,
         ]);
 
-        $middleware->api(prepend: [
-            \Illuminate\Http\Middleware\HandleCors::class,
-        ]);
+        $middleware->api(
+            prepend: [\Illuminate\Http\Middleware\HandleCors::class],
+            append: [CamelCaseResponse::class],
+        );
 
         $middleware->throttleApi();
     })

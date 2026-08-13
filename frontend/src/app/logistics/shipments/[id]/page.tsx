@@ -78,7 +78,7 @@ export default function ShipmentDetailPage() {
             </div>
             <StatusBadge status={shipment.status} />
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+          <div className="mt-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
             <div>
               <p className="text-xs text-gray-400">From</p>
               <p>{shipment.originAddress.line1}, {shipment.originAddress.city}, {shipment.originAddress.country}</p>

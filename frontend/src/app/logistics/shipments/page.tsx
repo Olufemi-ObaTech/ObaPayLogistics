@@ -34,12 +34,12 @@ export default function ShipmentsListPage() {
 
       <div className="divide-y divide-gray-200 rounded-xl border border-gray-200 bg-white shadow-sm">
         {shipments.map((s) => (
-          <Link key={s.id} href={`/logistics/shipments/${s.id}`} className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-gray-50">
-            <div>
-              <p className="font-medium text-obapay-navy">
+          <Link key={s.id} href={`/logistics/shipments/${s.id}`} className="flex flex-col gap-3 px-5 py-4 hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="truncate font-medium text-obapay-navy">
                 {s.originAddress.city} → {s.destinationAddress.city}
               </p>
-              <p className="text-xs text-gray-400">
+              <p className="truncate text-xs text-gray-400">
                 {s.trackingNumber ?? 'No tracking number yet'} · {s.courierPartner?.name ?? '—'} · {new Date(s.createdAt).toLocaleDateString()}
               </p>
             </div>

@@ -22,9 +22,11 @@ class GetRatesRequest extends FormRequest
             'destinationCity' => ['required', 'string'],
             'destinationCountry' => ['required', 'string', 'size:2'],
             'weightKg' => ['required', 'numeric', 'gt:0'],
-            'lengthCm' => ['required', 'numeric', 'gt:0'],
-            'widthCm' => ['required', 'numeric', 'gt:0'],
-            'heightCm' => ['required', 'numeric', 'gt:0'],
+            // Field names (length/width/height, not lengthCm/widthCm/heightCm)
+            // must match what the frontend's getRates() call actually sends.
+            'length' => ['required', 'numeric', 'gt:0'],
+            'width' => ['required', 'numeric', 'gt:0'],
+            'height' => ['required', 'numeric', 'gt:0'],
             'shippingMethod' => ['required', Rule::in(['AIR', 'SEA', 'ROAD'])],
         ];
     }
@@ -38,7 +40,7 @@ class GetRatesRequest extends FormRequest
             'origin' => ['line1' => $data['originLine1'], 'city' => $data['originCity'], 'country' => $data['originCountry']],
             'destination' => ['line1' => $data['destinationLine1'], 'city' => $data['destinationCity'], 'country' => $data['destinationCountry']],
             'weightKg' => $data['weightKg'],
-            'dimensions' => ['length' => $data['lengthCm'], 'width' => $data['widthCm'], 'height' => $data['heightCm']],
+            'dimensions' => ['length' => $data['length'], 'width' => $data['width'], 'height' => $data['height']],
             'shippingMethod' => $data['shippingMethod'],
         ];
     }

@@ -2,11 +2,24 @@
 // (set at login) and attaches it, plus a per-call Idempotency-Key for any
 // mutating logistics/payment endpoint that requires one.
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:3000';
+import { getToken } from './auth';
 
-function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return window.localStorage.getItem('obapay_access_token');
+// Includes the trailing /api segment: the Laravel backend namespaces every
+// route under /api, unlike the original NestJS backend which didn't.
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8000/api';
+
+// Backend validation errors (422s) come back as { field: [messages] } rather
+// than a plain string; without this, new Error(someObject) silently
+// stringifies to the literal text "[object Object]" in the UI.
+function stringifyErrorMessage(message: unknown): string | undefined {
+  if (typeof message === 'string') return message;
+  if (message && typeof message === 'object') {
+    const parts = Object.values(message as Record<string, unknown>)
+      .flat()
+      .filter((v): v is string => typeof v === 'string');
+    if (parts.length) return parts.join(' ');
+  }
+  return undefined;
 }
 
 function newIdempotencyKey(): string {
@@ -35,9 +48,38 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   if (!res.ok) {
     const errorBody = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(errorBody.message ?? `Request to ${path} failed with ${res.status}`);
+    throw new Error(stringifyErrorMessage(errorBody.message) ?? `Request to ${path} failed with ${res.status}`);
   }
   return res.json() as Promise<T>;
+}
+
+// --- Auth ---------------------------------------------------------------
+
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+  userId: string;
+}
+
+export function login(payload: { emailOrPhone: string; password: string; totpCode?: string; deviceFingerprint: string }) {
+  return apiRequest<AuthTokens>('/auth/login', { method: 'POST', body: payload });
+}
+
+export function register(payload: {
+  email: string;
+  phone: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  country: string;
+  preferredCurrency?: string;
+  deviceFingerprint: string;
+}) {
+  return apiRequest<AuthTokens>('/auth/register', { method: 'POST', body: payload });
+}
+
+export function logout(refreshToken?: string) {
+  return apiRequest<{ loggedOut: boolean }>('/auth/logout', { method: 'POST', body: { refreshToken } });
 }
 
 // --- Domain types (mirrors backend DTOs/entities) -------------------------

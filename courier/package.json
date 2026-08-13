@@ -1,0 +1,14 @@
+{
+  "name": "obapay-mock-courier-simulator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local stand-in for DHL/Aramex/Sendy/geocoding APIs used in dev/CI so the Logistics service has something real to call.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "uuid": "^10.0.0"
+  }
+}

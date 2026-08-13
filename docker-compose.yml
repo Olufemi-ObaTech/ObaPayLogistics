@@ -1,0 +1,76 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: obapay
+      POSTGRES_PASSWORD: obapay_pw
+      POSTGRES_DB: obapay
+    ports:
+      - '5432:5432'
+    volumes:
+      - obapay_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U obapay']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mock-courier-simulator:
+    build: ./courier
+    restart: unless-stopped
+    ports:
+      - '4001:4001'
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mock-courier-simulator:
+        condition: service_started
+    ports:
+      - '3000:3000'
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://obapay:obapay_pw@postgres:5432/obapay?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: change-me-in-production
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_SECRET: change-me-too
+      JWT_REFRESH_EXPIRES_IN: 7d
+      TOTP_ISSUER: ObaPay
+      THROTTLE_TTL_MS: 60000
+      THROTTLE_LIMIT: 100
+      DHL_API_BASE: http://mock-courier-simulator:4001/dhl
+      DHL_API_KEY: stub-dhl-key
+      ARAMEX_API_BASE: http://mock-courier-simulator:4001/aramex
+      ARAMEX_API_KEY: stub-aramex-key
+      SENDY_API_BASE: http://mock-courier-simulator:4001/sendy
+      SENDY_API_KEY: stub-sendy-key
+      GEOCODING_API_BASE: http://mock-courier-simulator:4001/geocode
+      LOGISTICS_MARGIN_PCT: 8
+      CUSTOMS_AUTO_CLEAR_MIN_DELAY_MS: 60000
+      CUSTOMS_AUTO_CLEAR_MAX_DELAY_MS: 300000
+      CORS_ORIGIN: http://localhost:3001
+    command: sh -c "npx prisma migrate deploy && node dist/main.js"
+
+volumes:
+  obapay_pg_data:

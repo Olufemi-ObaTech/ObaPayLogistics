@@ -1,0 +1,354 @@
+// ObaPay Logistics - Prisma schema
+// Covers the fintech core (users, multi-currency wallets, transactions, FX)
+// and the logistics extension (shipments, tracking, couriers, customs).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// FINTECH CORE
+// ---------------------------------------------------------------------------
+
+enum KycTier {
+  TIER_1 // phone + email verified, low limits, wallet-only
+  TIER_2 // government ID verified, higher limits, can receive merchant payouts
+  TIER_3 // business registration / proof of address, commercial shipper + customs broker eligible
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+  CLOSED
+}
+
+model User {
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  phone               String    @unique
+  passwordHash        String
+  firstName           String
+  lastName             String
+  country             String // ISO 3166-1 alpha-2, one of the 54 African countries
+  preferredCurrency   String    @default("USD") // ISO 4217
+  kycTier             KycTier   @default(TIER_1)
+  status              UserStatus @default(PENDING_VERIFICATION)
+
+  // 2FA / TOTP
+  totpSecret          String?
+  totpEnabled         Boolean   @default(false)
+
+  // Business / commercial shipper info (required to unlock customs-broker features at TIER_3)
+  businessName        String?
+  businessRegNumber   String?
+
+  wallets             Wallet[]
+  devices             DeviceFingerprint[]
+  shipments           Shipment[]
+  refreshTokens       RefreshToken[]
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([country])
+}
+
+model DeviceFingerprint {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  fingerprint String // hashed device fingerprint (canvas/UA/IP composite, computed client-side)
+  userAgent   String?
+  lastSeenIp  String?
+  trusted     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  @@unique([userId, fingerprint])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  tokenHash String
+  revoked   Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+enum WalletCurrency {
+  NGN
+  KES
+  ZAR
+  GHS
+  USD
+  EUR
+  XOF
+  EGP
+}
+
+model Wallet {
+  id        String         @id @default(uuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id])
+  currency  WalletCurrency
+  balance   Decimal        @default(0) @db.Decimal(20, 4)
+  // Funds committed to in-flight shipments (escrow), not spendable, not yet paid to courier.
+  heldBalance Decimal      @default(0) @db.Decimal(20, 4)
+  isActive  Boolean        @default(true)
+
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  sentTransactions     Transaction[] @relation("SourceWallet")
+  receivedTransactions Transaction[] @relation("DestinationWallet")
+  escrowHolds          EscrowHold[]
+
+  @@unique([userId, currency])
+}
+
+enum TransactionType {
+  P2P_TRANSFER
+  BILL_PAYMENT
+  MERCHANT_SETTLEMENT
+  FX_CONVERSION
+  SHIPPING_PAYMENT
+  SHIPPING_REFUND
+  WALLET_TOPUP
+  WALLET_WITHDRAWAL
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REVERSED
+}
+
+model Transaction {
+  id                String             @id @default(uuid())
+  type              TransactionType
+  status            TransactionStatus  @default(PENDING)
+  amount            Decimal            @db.Decimal(20, 4)
+  currency          WalletCurrency
+  feeAmount         Decimal            @default(0) @db.Decimal(20, 4) // merchant settlement fee / logistics margin captured
+  fxSpreadAmount    Decimal            @default(0) @db.Decimal(20, 4)
+
+  sourceWalletId      String?
+  sourceWallet        Wallet?          @relation("SourceWallet", fields: [sourceWalletId], references: [id])
+  destinationWalletId  String?
+  destinationWallet    Wallet?         @relation("DestinationWallet", fields: [destinationWalletId], references: [id])
+
+  // Idempotency: caller-supplied key, unique per logical operation, so retried requests
+  // (common on unreliable African mobile networks) never double-charge a wallet.
+  idempotencyKey    String             @unique
+
+  // Optional link back to the shipment this transaction pays for.
+  shipmentId        String?
+  shipment          Shipment?          @relation(fields: [shipmentId], references: [id])
+
+  reference         String             @unique @default(uuid())
+  narration         String?
+  metadata          Json?
+
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([shipmentId])
+  @@index([status])
+}
+
+model FxRate {
+  id           String   @id @default(uuid())
+  baseCurrency WalletCurrency
+  quoteCurrency WalletCurrency
+  rate         Decimal  @db.Decimal(20, 8) // 1 base = rate * quote (mid-market)
+  spreadPct    Decimal  @default(0.5) @db.Decimal(5, 2)
+  source       String   @default("internal") // rate provider name
+  fetchedAt    DateTime @default(now())
+
+  @@unique([baseCurrency, quoteCurrency])
+  @@index([fetchedAt])
+}
+
+// Generic idempotency ledger shared across all mutating endpoints (shipment creation,
+// payment confirmation, etc). Keeps the *response* of the first successful call so
+// retried requests get the exact same result instead of re-executing side effects.
+model IdempotencyRecord {
+  id           String   @id @default(uuid())
+  key          String   @unique
+  userId       String
+  requestPath  String
+  responseBody Json?
+  statusCode   Int?
+  lockedAt     DateTime @default(now())
+  completedAt  DateTime?
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// LOGISTICS
+// ---------------------------------------------------------------------------
+
+enum ShippingMethod {
+  AIR
+  SEA
+  ROAD
+}
+
+enum ShipmentStatus {
+  DRAFT
+  PENDING_PAYMENT
+  PAID
+  PICKED_UP
+  IN_TRANSIT
+  CUSTOMS_CLEARANCE
+  DELIVERED
+  RETURNED
+  CANCELLED
+}
+
+enum CustomsCategory {
+  DOCUMENTS
+  GIFTS
+  COMMERCIAL_SAMPLE
+  PERSONAL_EFFECTS
+  ELECTRONICS
+  MERCHANDISE
+  OTHER
+}
+
+model Shipment {
+  id                String          @id @default(uuid())
+  userId            String
+  user              User            @relation(fields: [userId], references: [id])
+
+  originAddress      Json // { line1, city, state, country (ISO2), postalCode, lat?, lng? }
+  destinationAddress Json
+
+  weightKg          Decimal         @db.Decimal(10, 3)
+  dimensionsCm      Json // { length, width, height }
+  declaredValue     Decimal         @db.Decimal(20, 4)
+  declaredValueCurrency WalletCurrency @default(USD)
+  customsCategory   CustomsCategory
+  shippingMethod    ShippingMethod
+
+  // Winning courier + rate-shopping outcome
+  courierPartnerId  String?
+  courierPartner    CourierPartner? @relation(fields: [courierPartnerId], references: [id])
+  quotedRate        Decimal?        @db.Decimal(20, 4) // raw courier cost
+  finalPrice        Decimal?        @db.Decimal(20, 4) // rate + ObaPay margin, in user's preferred currency
+  priceCurrency     WalletCurrency?
+  marginAmount      Decimal?        @db.Decimal(20, 4)
+
+  trackingNumber    String?         @unique
+  status            ShipmentStatus  @default(DRAFT)
+
+  // When a shipment enters CUSTOMS_CLEARANCE, this is set to "now + random
+  // delay" and a periodic cron sweep (not an in-process setTimeout, which is
+  // lost on restart/across replicas) clears it once this time has passed.
+  customsClearAt    DateTime?
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  paidAt            DateTime?
+  deliveredAt       DateTime?
+
+  trackingEvents    TrackingEvent[]
+  customsDocuments  CustomsDocument[]
+  escrowHold        EscrowHold?
+  transactions      Transaction[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([trackingNumber])
+  @@index([status, customsClearAt])
+}
+
+model TrackingEvent {
+  id          String   @id @default(uuid())
+  shipmentId  String
+  shipment    Shipment @relation(fields: [shipmentId], references: [id])
+  timestamp   DateTime @default(now())
+  location    String
+  status      ShipmentStatus
+  description String // e.g. "Cleared customs in Nairobi"
+  source      String   @default("internal") // "internal" | courier partner code
+
+  @@index([shipmentId, timestamp])
+}
+
+model CourierPartner {
+  id                  String   @id @default(uuid())
+  code                String   @unique // e.g. "DHL", "ARAMEX", "SENDY"
+  name                String
+  apiEndpoint         String
+  apiKey              String
+  supportedCountries  Json // string[] of ISO2 country codes
+  supportedMethods    Json // ShippingMethod[] this partner can service
+  active              Boolean  @default(true)
+
+  shipments           Shipment[]
+
+  createdAt           DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+enum DocumentType {
+  INVOICE
+  PACKING_LIST
+  CERTIFICATE_OF_ORIGIN
+  ID_DOCUMENT
+  OTHER
+}
+
+enum DocumentVerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model CustomsDocument {
+  id                 String                      @id @default(uuid())
+  shipmentId         String
+  shipment           Shipment                    @relation(fields: [shipmentId], references: [id])
+  documentType       DocumentType
+  fileUrl            String
+  verificationStatus DocumentVerificationStatus  @default(PENDING)
+  uploadedAt         DateTime                    @default(now())
+  verifiedAt         DateTime?
+  rejectionReason    String?
+
+  @@index([shipmentId])
+}
+
+// Escrow: funds are moved out of the wallet's spendable balance into heldBalance
+// the moment a shipment is paid for, and only released to the (simulated) courier
+// settlement once the shipment is DELIVERED. If a shipment is RETURNED/CANCELLED
+// pre-pickup, the hold is released back to the user instead.
+enum EscrowStatus {
+  HELD
+  RELEASED_TO_COURIER
+  REFUNDED_TO_USER
+}
+
+model EscrowHold {
+  id          String       @id @default(uuid())
+  shipmentId  String       @unique
+  shipment    Shipment     @relation(fields: [shipmentId], references: [id])
+  walletId    String
+  wallet      Wallet       @relation(fields: [walletId], references: [id])
+  amount      Decimal      @db.Decimal(20, 4)
+  currency    WalletCurrency
+  status      EscrowStatus @default(HELD)
+  createdAt   DateTime     @default(now())
+  resolvedAt  DateTime?
+}

@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+laravel-api/.env
+laravel-api/.env.*
+!laravel-api/.env.example
+
+# Build output
+dist/
+.next/
+laravel-api/public/build/
+laravel-api/public/hot/
+
+# Laravel
+laravel-api/storage/*.key
+laravel-api/storage/app/*
+!laravel-api/storage/app/.gitkeep
+laravel-api/storage/framework/cache/*
+laravel-api/storage/framework/sessions/*
+laravel-api/storage/framework/views/*
+laravel-api/storage/logs/*
+!laravel-api/storage/logs/.gitkeep
+laravel-api/bootstrap/cache/*.php
+laravel-api/database/database.sqlite
+laravel-api/.phpunit.cache/
+laravel-api/.phpunit.result.cache
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# NestJS backend
+coverage/

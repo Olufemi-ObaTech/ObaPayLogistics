@@ -85,12 +85,31 @@ export default function SendParcelPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="text-2xl font-bold text-obapay-navy">Send a Parcel</h1>
+      <div>
+        <h1 className="text-2xl font-bold text-obapay-navy sm:text-3xl">Send a Parcel</h1>
+        <ol className="mt-4 flex items-center gap-2 text-xs font-medium text-slate-400">
+          {(['FORM', 'QUOTE', 'CONFIRMED'] as Step[]).map((s, i) => (
+            <li key={s} className="flex items-center gap-2">
+              <span className={`flex h-6 w-6 items-center justify-center rounded-full ${step === s ? 'bg-obapay-teal text-white' : (['FORM', 'QUOTE', 'CONFIRMED'] as Step[]).indexOf(step) > i ? 'bg-obapay-navy text-white' : 'bg-slate-200 text-slate-500'}`}>
+                {i + 1}
+              </span>
+              <span className={step === s ? 'text-obapay-navy' : ''}>
+                {s === 'FORM' ? 'Details' : s === 'QUOTE' ? 'Quote' : 'Confirmed'}
+              </span>
+              {i < 2 && <span className="mx-1 h-px w-6 bg-slate-200" />}
+            </li>
+          ))}
+        </ol>
+      </div>
 
-      {error && <p className="rounded bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
+      {error && (
+        <p className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+          <span className="mt-0.5">⚠</span><span>{error}</span>
+        </p>
+      )}
 
       {step === 'FORM' && (
-        <form onSubmit={handleGetRates} className="space-y-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <form onSubmit={handleGetRates} className="card space-y-6">
           <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <legend className="col-span-2 mb-1 text-sm font-semibold text-obapay-navy">Origin</legend>
             <input className="input" placeholder="Address line 1" value={form.originLine1} onChange={(e) => update('originLine1', e.target.value)} required />
@@ -144,7 +163,7 @@ export default function SendParcelPage() {
       )}
 
       {step === 'QUOTE' && quote && (
-        <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="card space-y-4">
           <h2 className="font-semibold text-obapay-navy">Estimated Cost</h2>
           <div className="rounded-lg bg-obapay-teal/10 p-4">
             <p className="text-3xl font-bold text-obapay-navy">
@@ -184,8 +203,9 @@ export default function SendParcelPage() {
       )}
 
       {step === 'CONFIRMED' && shipment && (
-        <div className="space-y-4 rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center shadow-sm">
-          <h2 className="text-xl font-bold text-emerald-800">Shipment Confirmed 🎉</h2>
+        <div className="space-y-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-8 text-center shadow-sm">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-2xl text-emerald-600">✓</div>
+          <h2 className="text-xl font-bold text-emerald-800">Shipment Confirmed</h2>
           <p className="text-sm text-emerald-700">Tracking number</p>
           <p className="text-2xl font-mono font-bold text-emerald-900">{shipment.trackingNumber}</p>
           <div className="flex justify-center gap-3 pt-2">

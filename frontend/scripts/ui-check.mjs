@@ -23,13 +23,14 @@ async function run(viewport, tag) {
     }
   });
 
-  await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('button:has-text("Create account")', { timeout: 30000 });
   await page.click('button:has-text("Create account")');
-  await page.fill('input[placeholder="First name"]', 'UI');
-  await page.fill('input[placeholder="Last name"]', 'Check');
-  await page.fill('input[placeholder="Email"]', email);
-  await page.fill('input[placeholder="Phone, e.g. +2348012345678"]', phone);
-  await page.fill('input[placeholder="Password (min 10 characters)"]', 'TestPassword123');
+  await page.getByLabel('First name').fill('UI');
+  await page.getByLabel('Last name').fill('Check');
+  await page.getByLabel('Email').fill(email);
+  await page.getByLabel('Phone').fill(phone);
+  await page.getByLabel('Password').fill('TestPassword123');
   await page.screenshot({ path: `${outDir}/${tag}-01-register-form.png` });
   await page.click('form button[type="submit"]');
 
@@ -42,7 +43,8 @@ async function run(viewport, tag) {
   await page.waitForTimeout(1000);
   await page.screenshot({ path: `${outDir}/${tag}-02-wallet-dashboard.png`, fullPage: true });
 
-  await page.goto(`${BASE}/logistics/send-parcel`, { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}/logistics/send-parcel`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('h1:has-text("Send a Parcel")', { timeout: 30000 });
   await page.fill('input[placeholder="Address line 1"] >> nth=0', '1 Broad St');
   await page.fill('input[placeholder="City"] >> nth=0', 'Lagos');
   await page.fill('input[placeholder="Address line 1"] >> nth=1', 'CBD');
@@ -54,7 +56,8 @@ async function run(viewport, tag) {
   await page.waitForTimeout(500);
   await page.screenshot({ path: `${outDir}/${tag}-04-quote.png`, fullPage: true });
 
-  await page.goto(`${BASE}/logistics/shipments`, { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}/logistics/shipments`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('h1:has-text("My Shipments")', { timeout: 30000 });
   await page.waitForTimeout(500);
   await page.screenshot({ path: `${outDir}/${tag}-05-shipments-list.png`, fullPage: true });
 

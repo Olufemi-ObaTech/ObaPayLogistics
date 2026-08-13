@@ -1,7 +1,10 @@
 import type { Metadata, Viewport } from 'next';
+import { Inter } from 'next/font/google';
 import './globals.css';
 import { Nav } from '@/components/Nav';
-import { AuthGuard } from '@/components/AuthGuard';
+import { PageShell } from '@/components/PageShell';
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
   title: 'ObaPay',
@@ -15,12 +18,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={inter.variable}>
       <body>
         <Nav />
-        <main className="mx-auto max-w-5xl px-4 py-6 sm:py-8">
-          <AuthGuard>{children}</AuthGuard>
-        </main>
+        <PageShell>{children}</PageShell>
       </body>
     </html>
   );

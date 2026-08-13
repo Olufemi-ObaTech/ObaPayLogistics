@@ -64,48 +64,48 @@ export default function ShipmentDetailPage() {
     }
   }
 
-  if (error) return <p className="rounded bg-rose-50 p-3 text-sm text-rose-700">{error}</p>;
-  if (!shipment) return <p className="text-sm text-gray-500">Loading shipment…</p>;
+  if (error) return <p className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</p>;
+  if (!shipment) return <div className="card h-40 animate-pulse bg-slate-100" />;
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="card">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs text-gray-400">Tracking Number</p>
+              <p className="text-xs text-slate-400">Tracking Number</p>
               <p className="font-mono text-lg font-bold text-obapay-navy">{shipment.trackingNumber ?? 'Pending'}</p>
             </div>
             <StatusBadge status={shipment.status} />
           </div>
           <div className="mt-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
             <div>
-              <p className="text-xs text-gray-400">From</p>
+              <p className="text-xs text-slate-400">From</p>
               <p>{shipment.originAddress.line1}, {shipment.originAddress.city}, {shipment.originAddress.country}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-400">To</p>
+              <p className="text-xs text-slate-400">To</p>
               <p>{shipment.destinationAddress.line1}, {shipment.destinationAddress.city}, {shipment.destinationAddress.country}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-400">Courier</p>
+              <p className="text-xs text-slate-400">Courier</p>
               <p>{shipment.courierPartner?.name ?? '—'}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-400">Paid</p>
+              <p className="text-xs text-slate-400">Paid</p>
               <p>{shipment.finalPrice ? `${Number(shipment.finalPrice).toLocaleString()} ${shipment.priceCurrency}` : '—'}</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="card">
           <h2 className="mb-4 font-semibold text-obapay-navy">Tracking Timeline</h2>
           <TrackingTimeline events={events} />
         </div>
       </div>
 
       <div className="space-y-6">
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="card">
           <h2 className="mb-2 font-semibold text-obapay-navy">Customs Clearance</h2>
           {customs && customs.missingDocuments.length > 0 && (
             <p className="mb-3 rounded bg-amber-50 p-2 text-xs text-amber-700">

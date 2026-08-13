@@ -33,8 +33,8 @@ export function Nav() {
   }
 
   return (
-    <nav className="bg-obapay-navy text-white">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+    <nav className="sticky top-0 z-10 bg-obapay-navy text-white shadow-md shadow-obapay-navy/10">
+      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3.5">
         <Link href="/" className="text-lg font-bold tracking-tight">
           Oba<span className="text-obapay-teal">Pay</span>
         </Link>

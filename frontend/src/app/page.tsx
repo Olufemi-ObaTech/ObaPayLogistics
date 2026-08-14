@@ -2,93 +2,70 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getWalletBalances, WalletBalance } from '@/lib/api';
+import { getWalletBalances, getShipmentHistory, WalletBalance, Shipment } from '@/lib/api';
 
-const CURRENCY_LABELS: Record<string, string> = {
-  NGN: 'Nigerian Naira', KES: 'Kenyan Shilling', ZAR: 'South African Rand', GHS: 'Ghanaian Cedi',
-  USD: 'US Dollar', EUR: 'Euro', XOF: 'West African CFA', EGP: 'Egyptian Pound',
-};
-
-export default function WalletDashboardPage() {
+export default function HubPage() {
   const [balances, setBalances] = useState<WalletBalance[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [shipments, setShipments] = useState<Shipment[]>([]);
 
   useEffect(() => {
-    getWalletBalances()
-      .then(setBalances)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+    getWalletBalances().then(setBalances).catch(() => {});
+    getShipmentHistory().then(setShipments).catch(() => {});
   }, []);
 
   const primary = balances[0];
+  const activeShipments = shipments.filter((s) => !['DELIVERED', 'CANCELLED', 'RETURNED'].includes(s.status)).length;
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-obapay-navy sm:text-3xl">Your Wallets</h1>
-        <p className="mt-1 text-sm text-slate-500">P2P transfers, bill payments, and intra-wallet moves are always free.</p>
+        <h1 className="text-2xl font-bold text-obapay-navy sm:text-3xl">Welcome back</h1>
+        <p className="mt-1 text-sm text-slate-500">Two products, one account. Pick where you're headed.</p>
       </div>
 
-      {error && <p className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Link
+          href="/bank"
+          className="group relative overflow-hidden rounded-2xl bg-obapay-navy p-8 text-white shadow-lg shadow-obapay-navy/20 transition-transform hover:-translate-y-1"
+        >
+          <div
+            className="pointer-events-none absolute inset-0 opacity-50 transition-opacity group-hover:opacity-70"
+            style={{ background: 'radial-gradient(circle at 85% 15%, rgba(15,181,174,0.4), transparent 50%)' }}
+          />
+          <div className="relative">
+            <span className="inline-block rounded bg-obapay-teal/20 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-obapay-teal">NeoBank</span>
+            <h2 className="mt-4 text-2xl font-bold">Wallet &amp; Payments</h2>
+            <p className="mt-2 text-sm text-white/70">Free transfers, bill payments, and multi-currency wallets.</p>
+            <p className="mt-6 text-3xl font-bold">
+              {primary ? Number(primary.balance).toLocaleString(undefined, { minimumFractionDigits: 2 }) : '—'}
+              <span className="ml-2 text-base font-semibold text-white/60">{primary?.currency ?? ''}</span>
+            </p>
+            <span className="mt-6 inline-flex items-center gap-1 text-sm font-semibold text-obapay-teal">
+              Open NeoBank <span className="transition-transform group-hover:translate-x-1">→</span>
+            </span>
+          </div>
+        </Link>
 
-      {loading ? (
-        <div className="card h-40 animate-pulse bg-slate-100" />
-      ) : balances.length === 0 ? (
-        <div className="card text-center text-sm text-slate-500">No wallets yet.</div>
-      ) : (
-        <>
-          {/* Hero card for the primary wallet */}
-          {primary && (
-            <div className="relative overflow-hidden rounded-2xl bg-obapay-navy p-6 text-white shadow-lg shadow-obapay-navy/20 sm:p-8">
-              <div
-                className="pointer-events-none absolute inset-0 opacity-50"
-                style={{ background: 'radial-gradient(circle at 90% 0%, rgba(15,181,174,0.35), transparent 55%)' }}
-              />
-              <div className="relative">
-                <p className="text-xs font-medium uppercase tracking-wider text-white/60">{CURRENCY_LABELS[primary.currency] ?? primary.currency}</p>
-                <p className="mt-2 text-4xl font-bold tracking-tight sm:text-5xl">
-                  {Number(primary.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  <span className="ml-2 text-lg font-semibold text-white/60">{primary.currency}</span>
-                </p>
-                {Number(primary.heldBalance) > 0 && (
-                  <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-amber-400/15 px-3 py-1 text-xs font-medium text-amber-300">
-                    {Number(primary.heldBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })} held in escrow
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {balances.length > 1 && (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {balances.slice(1).map((wallet) => (
-                <div key={wallet.id} className="card">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{wallet.currency}</p>
-                  <p className="mt-1 text-2xl font-bold text-obapay-navy">
-                    {Number(wallet.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  </p>
-                  {Number(wallet.heldBalance) > 0 && (
-                    <p className="mt-1 text-xs text-amber-600">
-                      {Number(wallet.heldBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })} held in escrow
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-
-      <div className="card flex flex-col items-start gap-4 border-dashed border-obapay-teal/40 bg-obapay-teal/5 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="font-semibold text-obapay-navy">Shipping a parcel?</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Pay for shipping directly from your wallet balance — no separate checkout needed.
-          </p>
-        </div>
-        <Link href="/logistics/send-parcel" className="btn-primary w-full flex-shrink-0 sm:w-auto">
-          Send a Parcel
+        <Link
+          href="/logistics"
+          className="group relative overflow-hidden rounded-2xl bg-obapay-navy p-8 text-white shadow-lg shadow-obapay-navy/20 transition-transform hover:-translate-y-1"
+        >
+          <div
+            className="pointer-events-none absolute inset-0 opacity-50 transition-opacity group-hover:opacity-70"
+            style={{ background: 'radial-gradient(circle at 85% 15%, rgba(242,169,59,0.4), transparent 50%)' }}
+          />
+          <div className="relative">
+            <span className="inline-block rounded bg-obapay-gold/20 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-obapay-gold">Logistics</span>
+            <h2 className="mt-4 text-2xl font-bold">Shipping &amp; Customs</h2>
+            <p className="mt-2 text-sm text-white/70">Rate-shop couriers, pay from your wallet, clear customs digitally.</p>
+            <p className="mt-6 text-3xl font-bold">
+              {activeShipments}
+              <span className="ml-2 text-base font-semibold text-white/60">active shipment{activeShipments === 1 ? '' : 's'}</span>
+            </p>
+            <span className="mt-6 inline-flex items-center gap-1 text-sm font-semibold text-obapay-gold">
+              Open Logistics <span className="transition-transform group-hover:translate-x-1">→</span>
+            </span>
+          </div>
         </Link>
       </div>
     </div>

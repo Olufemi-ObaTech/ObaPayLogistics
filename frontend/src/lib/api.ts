@@ -195,6 +195,36 @@ export function getWalletBalances() {
   return apiRequest<WalletBalance[]>('/wallet/balances');
 }
 
+export interface Transaction {
+  id: string;
+  type: string;
+  status: string;
+  amount: string;
+  currency: string;
+  feeAmount: string;
+  fxSpreadAmount: string;
+  sourceWalletId: string | null;
+  destinationWalletId: string | null;
+  narration: string | null;
+  createdAt: string;
+}
+
+export function sendMoney(payload: { recipientIdentifier: string; currency: string; amount: number; narration?: string }) {
+  return apiRequest<Transaction>('/wallet/send', { method: 'POST', body: payload, idempotent: true });
+}
+
+export function getTransactions() {
+  return apiRequest<Transaction[]>('/transactions');
+}
+
+export function enableTotp() {
+  return apiRequest<{ secret: string; otpAuthUrl: string }>('/auth/2fa/enable', { method: 'POST' });
+}
+
+export function confirmTotp(code: string) {
+  return apiRequest<{ totpEnabled: boolean }>('/auth/2fa/confirm', { method: 'POST', body: { code } });
+}
+
 export function uploadCustomsDocument(payload: { shipmentId: string; documentType: string; fileUrl: string }) {
   return apiRequest('/customs/upload', { method: 'POST', body: payload, idempotent: true });
 }

@@ -95,6 +95,50 @@ class WalletService
     }
 
     /**
+     * Send money by email or phone (the real neobank UX) rather than making
+     * the caller know a raw wallet id. Resolves the recipient's wallet in the
+     * requested currency — creating it if this is their first time receiving
+     * that currency — then delegates to p2pTransfer for the actual, already
+     * ownership-checked and row-locked, funds movement.
+     */
+    public function sendMoney(array $params): Transaction
+    {
+        if ($params['amount'] <= 0) {
+            throw new BadRequestHttpException('Amount must be positive');
+        }
+
+        $recipient = User::query()
+            ->where('email', $params['recipientIdentifier'])
+            ->orWhere('phone', $params['recipientIdentifier'])
+            ->first();
+
+        if (! $recipient || $recipient->status !== 'ACTIVE' && $recipient->status !== 'PENDING_VERIFICATION') {
+            throw new NotFoundHttpException('No ObaPay user found with that email or phone');
+        }
+        if ($recipient->id === $params['callerId']) {
+            throw new BadRequestHttpException('Cannot send money to yourself');
+        }
+
+        $sourceWallet = Wallet::query()
+            ->where('user_id', $params['callerId'])->where('currency', $params['currency'])
+            ->first();
+        if (! $sourceWallet) {
+            throw new BadRequestHttpException("You don't have a {$params['currency']} wallet yet");
+        }
+
+        $destinationWallet = $this->getOrCreateWallet($recipient->id, $params['currency']);
+
+        return $this->p2pTransfer([
+            'idempotencyKey' => $params['idempotencyKey'],
+            'callerId' => $params['callerId'],
+            'sourceWalletId' => $sourceWallet->id,
+            'destinationWalletId' => $destinationWallet->id,
+            'amount' => $params['amount'],
+            'narration' => $params['narration'] ?? "To {$recipient->first_name} {$recipient->last_name}",
+        ]);
+    }
+
+    /**
      * Merchant is identified by userId (never a raw wallet id) and the payer
      * wallet is always resolved from the authenticated caller, so a request
      * body can never redirect funds out of someone else's wallet.

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\MerchantSettlementRequest;
 use App\Http\Requests\P2pTransferRequest;
+use App\Http\Requests\SendMoneyRequest;
 use App\Services\WalletService;
 use Illuminate\Http\Request;
 
@@ -27,6 +28,16 @@ class WalletController extends Controller
         $data['callerId'] = $request->user()->id;
 
         return $this->walletService->p2pTransfer($data);
+    }
+
+    /** Send money by email or phone — the everyday P2P flow, not raw wallet ids. */
+    public function send(SendMoneyRequest $request)
+    {
+        $data = $request->validated();
+        $data['idempotencyKey'] = $request->header('Idempotency-Key');
+        $data['callerId'] = $request->user()->id;
+
+        return $this->walletService->sendMoney($data);
     }
 
     /**

@@ -21,6 +21,7 @@ Route::middleware(['auth:api', 'jwt.active'])->group(function () {
 
     Route::get('/wallet/balances', [WalletController::class, 'balances']);
     Route::post('/wallet/transfer', [WalletController::class, 'transfer'])->middleware('idempotent');
+    Route::post('/wallet/send', [WalletController::class, 'send'])->middleware('idempotent');
     Route::post('/wallet/settle', [WalletController::class, 'settle'])->middleware('idempotent');
 
     Route::get('/transactions', [TransactionController::class, 'index']);

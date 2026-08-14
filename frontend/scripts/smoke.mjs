@@ -1,0 +1,12 @@
+console.error('starting');
+import { chromium } from 'playwright';
+console.error('imported');
+const browser = await chromium.launch();
+console.error('launched');
+const page = await browser.newPage();
+console.error('page created');
+await page.goto('http://localhost:3001/login', { timeout: 15000 });
+console.error('navigated');
+console.error(await page.title());
+await browser.close();
+console.error('done');

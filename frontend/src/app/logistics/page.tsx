@@ -6,6 +6,11 @@ import { getShipmentHistory, Shipment } from '@/lib/api';
 import { StatusBadge } from '@/components/StatusBadge';
 
 const IN_TRANSIT_STATUSES = ['PAID', 'PICKED_UP', 'IN_TRANSIT', 'CUSTOMS_CLEARANCE'];
+const METHOD_META: Record<string, { label: string; color: string }> = {
+  AIR: { label: 'Air ✈', color: 'bg-obapay-gold' },
+  SEA: { label: 'Sea 🚢', color: 'bg-obapay-teal' },
+  ROAD: { label: 'Road 🚚', color: 'bg-indigo-400' },
+};
 
 export default function LogisticsDashboardPage() {
   const [shipments, setShipments] = useState<Shipment[]>([]);
@@ -24,6 +29,12 @@ export default function LogisticsDashboardPage() {
     inTransit: shipments.filter((s) => IN_TRANSIT_STATUSES.includes(s.status)).length,
     delivered: shipments.filter((s) => s.status === 'DELIVERED').length,
   };
+
+  const methodCounts = shipments.reduce<Record<string, number>>((acc, s) => {
+    acc[s.shippingMethod] = (acc[s.shippingMethod] ?? 0) + 1;
+    return acc;
+  }, {});
+  const maxMethodCount = Math.max(1, ...Object.values(methodCounts));
 
   return (
     <div className="space-y-8">
@@ -51,6 +62,29 @@ export default function LogisticsDashboardPage() {
           <p className="mt-1 text-3xl font-bold text-emerald-600">{loading ? '—' : stats.delivered}</p>
         </div>
       </div>
+
+      {!loading && shipments.length > 0 && (
+        <div className="card">
+          <h2 className="mb-4 font-semibold text-obapay-navy">Shipping Method Mix</h2>
+          <div className="space-y-3">
+            {Object.entries(METHOD_META).map(([method, meta]) => {
+              const count = methodCounts[method] ?? 0;
+              return (
+                <div key={method} className="flex items-center gap-3">
+                  <span className="w-16 flex-shrink-0 text-xs font-medium text-slate-500">{meta.label}</span>
+                  <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className={`h-full rounded-full ${meta.color} transition-all duration-500`}
+                      style={{ width: `${(count / maxMethodCount) * 100}%` }}
+                    />
+                  </div>
+                  <span className="w-6 flex-shrink-0 text-right text-xs font-semibold text-slate-600">{count}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div>
         <div className="mb-3 flex items-center justify-between">

@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { logout as apiLogout } from '@/lib/api';
+import { logout as apiLogout, getMe, Profile } from '@/lib/api';
 import { clearSession, isLoggedIn } from '@/lib/auth';
+import { Avatar } from './Avatar';
 
 const BANK_LINKS = [
   { href: '/bank', label: 'Wallet' },
@@ -24,13 +25,23 @@ export function Nav() {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
 
-  useEffect(() => { setLoggedIn(isLoggedIn()); setMenuOpen(false); }, [pathname]);
+  useEffect(() => {
+    const nowLoggedIn = isLoggedIn();
+    setLoggedIn(nowLoggedIn);
+    setMenuOpen(false);
+    if (nowLoggedIn && !profile) {
+      getMe().then(setProfile).catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   async function handleLogout() {
     try { await apiLogout(); } catch { /* best-effort revoke */ }
     clearSession();
     setLoggedIn(false);
+    setProfile(null);
     router.push('/login');
   }
 
@@ -69,7 +80,12 @@ export function Nav() {
                   {switchTo.label}
                 </Link>
               )}
-              <button onClick={handleLogout} className="ml-1 rounded px-3 py-1.5 text-sm text-white/80 hover:bg-white/10 hover:text-white">
+              {profile && (
+                <Link href="/bank/settings" className="ml-2 flex-shrink-0" title={`${profile.firstName} ${profile.lastName}`}>
+                  <Avatar firstName={profile.firstName} lastName={profile.lastName} size={30} />
+                </Link>
+              )}
+              <button onClick={handleLogout} className="rounded px-3 py-1.5 text-sm text-white/80 hover:bg-white/10 hover:text-white">
                 Log out
               </button>
             </div>

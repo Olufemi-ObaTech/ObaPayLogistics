@@ -57,4 +57,20 @@ class AuthController extends Controller
 
         return $this->authService->confirmTotp($request->user()->id, $request->input('code'));
     }
+
+    public function me(Request $request)
+    {
+        $user = $request->user();
+
+        return [
+            'firstName' => $user->first_name,
+            'lastName' => $user->last_name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'country' => $user->country,
+            'kycTier' => $user->kyc_tier,
+            'totpEnabled' => $user->totp_enabled,
+            'memberSince' => $user->created_at,
+        ];
+    }
 }

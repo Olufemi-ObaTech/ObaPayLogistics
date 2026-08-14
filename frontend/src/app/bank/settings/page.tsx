@@ -1,18 +1,31 @@
 'use client';
 
-import { useState } from 'react';
-import { enableTotp, confirmTotp } from '@/lib/api';
+import { useEffect, useState } from 'react';
+import { enableTotp, confirmTotp, getMe, Profile } from '@/lib/api';
+import { Avatar } from '@/components/Avatar';
+import { KYC_TIER_LABELS, CURRENCY_FLAGS } from '@/lib/display';
 
-type Step = 'IDLE' | 'SETUP' | 'DONE';
+type Step = 'LOADING' | 'ENABLED' | 'IDLE' | 'SETUP' | 'DONE';
+
+const COUNTRY_FLAGS: Record<string, string> = {
+  NG: '🇳🇬', KE: '🇰🇪', ZA: '🇿🇦', GH: '🇬🇭', EG: '🇪🇬', ET: '🇪🇹', TZ: '🇹🇿', UG: '🇺🇬',
+  RW: '🇷🇼', CI: '🇨🇮', SN: '🇸🇳', CM: '🇨🇲', ML: '🇲🇱', BF: '🇧🇫', DZ: '🇩🇿', MA: '🇲🇦',
+};
 
 export default function SecuritySettingsPage() {
-  const [step, setStep] = useState<Step>('IDLE');
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [step, setStep] = useState<Step>('LOADING');
   const [secret, setSecret] = useState('');
-  const [otpAuthUrl, setOtpAuthUrl] = useState('');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    getMe()
+      .then((p) => { setProfile(p); setStep(p.totpEnabled ? 'ENABLED' : 'IDLE'); })
+      .catch((err) => { setError(err.message); setStep('IDLE'); });
+  }, []);
 
   async function startSetup() {
     setBusy(true);
@@ -20,7 +33,6 @@ export default function SecuritySettingsPage() {
     try {
       const res = await enableTotp();
       setSecret(res.secret);
-      setOtpAuthUrl(res.otpAuthUrl);
       setStep('SETUP');
     } catch (err) {
       setError((err as Error).message);
@@ -53,13 +65,39 @@ export default function SecuritySettingsPage() {
     <div className="mx-auto max-w-lg space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-obapay-navy sm:text-3xl">Security</h1>
-        <p className="mt-1 text-sm text-slate-500">Two-factor authentication protects your account even if your password is compromised.</p>
+        <p className="mt-1 text-sm text-slate-500">Your profile and account protection settings.</p>
       </div>
+
+      {profile && (
+        <div className="card flex items-center gap-4">
+          <Avatar firstName={profile.firstName} lastName={profile.lastName} size={52} />
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-semibold text-obapay-navy">{profile.firstName} {profile.lastName}</p>
+            <p className="truncate text-sm text-slate-500">{profile.email}</p>
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              <span className="rounded-full bg-obapay-teal/10 px-2 py-0.5 text-[11px] font-semibold text-obapay-teal">
+                {KYC_TIER_LABELS[profile.kycTier]}
+              </span>
+              <span className="text-xs text-slate-400">{COUNTRY_FLAGS[profile.country] ?? ''} {profile.country}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {error && (
         <p className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
           <span className="mt-0.5">⚠</span><span>{error}</span>
         </p>
+      )}
+
+      {step === 'ENABLED' && (
+        <div className="card flex items-start gap-4 border-emerald-200 bg-emerald-50/60">
+          <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-lg text-emerald-600">✓</span>
+          <div>
+            <h2 className="font-semibold text-emerald-800">Two-factor authentication is on</h2>
+            <p className="mt-1 text-sm text-emerald-700">You'll be asked for a code when logging in from an unrecognized device.</p>
+          </div>
+        </div>
       )}
 
       {step === 'IDLE' && (
@@ -98,8 +136,8 @@ export default function SecuritySettingsPage() {
       )}
 
       {step === 'DONE' && (
-        <div className="card space-y-3 border-emerald-200 bg-emerald-50 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-2xl text-emerald-600">✓</div>
+        <div className="animate-pop-in card space-y-3 border-emerald-200 bg-emerald-50 text-center">
+          <div className="animate-check mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-2xl text-emerald-600">✓</div>
           <h2 className="font-semibold text-emerald-800">2FA is now enabled</h2>
           <p className="text-sm text-emerald-700">You'll be asked for a code the next time you log in from an unrecognized device.</p>
         </div>

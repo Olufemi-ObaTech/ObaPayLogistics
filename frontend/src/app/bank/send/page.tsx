@@ -41,8 +41,8 @@ export default function SendMoneyPage() {
 
   if (success) {
     return (
-      <div className="mx-auto max-w-md space-y-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-8 text-center shadow-sm">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-2xl text-emerald-600">✓</div>
+      <div className="animate-pop-in mx-auto max-w-md space-y-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-8 text-center shadow-sm">
+        <div className="animate-check mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-2xl text-emerald-600">✓</div>
         <h2 className="text-xl font-bold text-emerald-800">Money Sent</h2>
         <p className="text-sm text-emerald-700">
           {Number(success.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })} {success.currency} sent to {success.recipient} — free, instant, no fees.

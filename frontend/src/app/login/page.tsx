@@ -14,8 +14,17 @@ const COUNTRIES = [
 
 const VALUE_PROPS = [
   { title: 'Free P2P transfers', body: 'Send and receive money across ObaPay wallets with zero fees, always.' },
-  { title: 'Ship anywhere in Africa', body: 'Rate-shop across couriers and pay for shipping straight from your wallet.' },
+  { title: 'Multi-currency wallets', body: 'Hold NGN, KES, ZAR, GHS, USD, EUR, XOF, and EGP in one account, side by side.' },
+  { title: 'Ship anywhere in Africa', body: 'Rate-shop across DHL, Aramex, and Sendy — pay for shipping straight from your wallet.' },
   { title: 'Built-in customs clearance', body: 'Upload documents and generate pre-filled declarations in seconds.' },
+  { title: 'Bank-grade account security', body: 'TOTP 2FA, device-fingerprinting, and step-up verification on every new device.' },
+];
+
+const STATS = [
+  { value: '54', label: 'African countries supported' },
+  { value: '0%', label: 'Fees on P2P transfers' },
+  { value: '8', label: 'Wallet currencies' },
+  { value: '3', label: 'Courier partners rate-shopped' },
 ];
 
 type Mode = 'LOGIN' | 'REGISTER';
@@ -87,7 +96,16 @@ export default function LoginPage() {
             ObaPay is a wallet and cross-border logistics platform for Africa — free transfers, transparent shipping, done in minutes.
           </p>
         </div>
-        <div className="relative space-y-6">
+        <div className="relative grid grid-cols-2 gap-x-6 gap-y-5 xl:grid-cols-4">
+          {STATS.map((stat) => (
+            <div key={stat.label}>
+              <p className="text-2xl font-bold text-obapay-teal xl:text-3xl">{stat.value}</p>
+              <p className="mt-0.5 text-xs text-white/60">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="relative space-y-5">
           {VALUE_PROPS.map((item) => (
             <div key={item.title} className="flex gap-4">
               <div className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-obapay-teal" />
@@ -97,6 +115,11 @@ export default function LoginPage() {
               </div>
             </div>
           ))}
+
+          <div className="flex items-center gap-2 border-t border-white/10 pt-5 text-xs text-white/50">
+            <span>🔒</span>
+            <span>256-bit encryption in transit · TOTP two-factor authentication · Escrow-protected shipping payments</span>
+          </div>
         </div>
       </div>
 

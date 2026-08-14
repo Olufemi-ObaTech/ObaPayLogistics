@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getWalletBalances, getTransactions, WalletBalance, Transaction } from '@/lib/api';
 import { TransactionRow } from '@/components/TransactionRow';
+import { CURRENCY_FLAGS } from '@/lib/display';
 
 const CURRENCY_LABELS: Record<string, string> = {
   NGN: 'Nigerian Naira', KES: 'Kenyan Shilling', ZAR: 'South African Rand', GHS: 'Ghanaian Cedi',
@@ -22,6 +23,13 @@ export default function BankDashboardPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+
+  function copyWalletId(id: string) {
+    navigator.clipboard?.writeText(id);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
 
   useEffect(() => {
     Promise.all([getWalletBalances(), getTransactions()])
@@ -54,16 +62,26 @@ export default function BankDashboardPage() {
                 style={{ background: 'radial-gradient(circle at 90% 0%, rgba(15,181,174,0.35), transparent 55%)' }}
               />
               <div className="relative">
-                <p className="text-xs font-medium uppercase tracking-wider text-white/60">{CURRENCY_LABELS[primary.currency] ?? primary.currency}</p>
+                <p className="text-xs font-medium uppercase tracking-wider text-white/60">
+                  {CURRENCY_FLAGS[primary.currency] ?? ''} {CURRENCY_LABELS[primary.currency] ?? primary.currency}
+                </p>
                 <p className="mt-2 text-4xl font-bold tracking-tight sm:text-5xl">
                   {Number(primary.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   <span className="ml-2 text-lg font-semibold text-white/60">{primary.currency}</span>
                 </p>
-                {Number(primary.heldBalance) > 0 && (
-                  <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-amber-400/15 px-3 py-1 text-xs font-medium text-amber-300">
-                    {Number(primary.heldBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })} held in escrow
-                  </p>
-                )}
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {Number(primary.heldBalance) > 0 && (
+                    <p className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/15 px-3 py-1 text-xs font-medium text-amber-300">
+                      {Number(primary.heldBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })} held in escrow
+                    </p>
+                  )}
+                  <button
+                    onClick={() => copyWalletId(primary.id)}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/70 transition-colors hover:bg-white/20 hover:text-white"
+                  >
+                    {copied ? '✓ Copied' : `Wallet ID: ${primary.id.slice(0, 8)}…`}
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -72,7 +90,9 @@ export default function BankDashboardPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {balances.slice(1).map((wallet) => (
                 <div key={wallet.id} className="card">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{wallet.currency}</p>
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                    {CURRENCY_FLAGS[wallet.currency] ?? ''} {wallet.currency}
+                  </p>
                   <p className="mt-1 text-2xl font-bold text-obapay-navy">
                     {Number(wallet.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </p>

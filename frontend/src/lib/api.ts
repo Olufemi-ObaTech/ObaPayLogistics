@@ -82,6 +82,21 @@ export function logout(refreshToken?: string) {
   return apiRequest<{ loggedOut: boolean }>('/auth/logout', { method: 'POST', body: { refreshToken } });
 }
 
+export interface Profile {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  country: string;
+  kycTier: 'TIER_1' | 'TIER_2' | 'TIER_3';
+  totpEnabled: boolean;
+  memberSince: string;
+}
+
+export function getMe() {
+  return apiRequest<Profile>('/auth/me');
+}
+
 // --- Domain types (mirrors backend DTOs/entities) -------------------------
 
 export type ShipmentStatus =

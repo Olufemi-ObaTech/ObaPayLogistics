@@ -25,6 +25,24 @@ body {
   @apply inline-flex items-center justify-center rounded-lg bg-obapay-gold px-4 py-2.5 text-sm font-semibold text-obapay-navy shadow-sm shadow-obapay-gold/30 transition-all hover:opacity-90 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
 }
 
+@keyframes pop-in {
+  0% { opacity: 0; transform: scale(0.85) translateY(8px); }
+  60% { opacity: 1; transform: scale(1.03); }
+  100% { transform: scale(1) translateY(0); }
+}
+@keyframes check-draw {
+  0% { transform: scale(0) rotate(-15deg); opacity: 0; }
+  60% { transform: scale(1.15) rotate(5deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); }
+}
+.animate-pop-in {
+  animation: pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.animate-check {
+  animation: check-draw 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: 0.15s;
+}
+
 .card {
   @apply rounded-2xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-200/60;
 }

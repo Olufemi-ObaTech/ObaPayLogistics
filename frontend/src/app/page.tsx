@@ -2,15 +2,22 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getWalletBalances, getShipmentHistory, WalletBalance, Shipment } from '@/lib/api';
+import { getWalletBalances, getShipmentHistory, getMe, WalletBalance, Shipment, Profile } from '@/lib/api';
+import { Avatar } from '@/components/Avatar';
+import { KYC_TIER_LABELS, CURRENCY_FLAGS } from '@/lib/display';
+
+const GREETINGS = ['Welcome back', 'Good to see you', 'Hey there', 'Karibu', 'Sannu', 'Sawubona'];
 
 export default function HubPage() {
   const [balances, setBalances] = useState<WalletBalance[]>([]);
   const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [greeting] = useState(() => GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
 
   useEffect(() => {
     getWalletBalances().then(setBalances).catch(() => {});
     getShipmentHistory().then(setShipments).catch(() => {});
+    getMe().then(setProfile).catch(() => {});
   }, []);
 
   const primary = balances[0];
@@ -18,9 +25,19 @@ export default function HubPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-obapay-navy sm:text-3xl">Welcome back</h1>
-        <p className="mt-1 text-sm text-slate-500">Two products, one account. Pick where you're headed.</p>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-obapay-navy sm:text-3xl">
+            {greeting}{profile ? `, ${profile.firstName}` : ''} 👋
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">Two products, one account. Pick where you're headed.</p>
+        </div>
+        {profile && (
+          <Link href="/bank/settings" className="hidden flex-shrink-0 items-center gap-2.5 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-4 shadow-sm transition-shadow hover:shadow-md sm:flex">
+            <Avatar firstName={profile.firstName} lastName={profile.lastName} size={32} />
+            <span className="text-xs font-semibold text-obapay-navy">{KYC_TIER_LABELS[profile.kycTier]}</span>
+          </Link>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -38,7 +55,9 @@ export default function HubPage() {
             <p className="mt-2 text-sm text-white/70">Free transfers, bill payments, and multi-currency wallets.</p>
             <p className="mt-6 text-3xl font-bold">
               {primary ? Number(primary.balance).toLocaleString(undefined, { minimumFractionDigits: 2 }) : '—'}
-              <span className="ml-2 text-base font-semibold text-white/60">{primary?.currency ?? ''}</span>
+              <span className="ml-2 text-base font-semibold text-white/60">
+                {primary ? `${CURRENCY_FLAGS[primary.currency] ?? ''} ${primary.currency}` : ''}
+              </span>
             </p>
             <span className="mt-6 inline-flex items-center gap-1 text-sm font-semibold text-obapay-teal">
               Open NeoBank <span className="transition-transform group-hover:translate-x-1">→</span>

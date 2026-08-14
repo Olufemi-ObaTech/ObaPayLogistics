@@ -16,6 +16,7 @@ Route::post('/auth/refresh', [AuthController::class, 'refresh'])->middleware('th
 // --- Authenticated (JWT + active-account check) ---
 Route::middleware(['auth:api', 'jwt.active'])->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
+    Route::get('/auth/me', [AuthController::class, 'me']);
     Route::post('/auth/2fa/enable', [AuthController::class, 'enableTotp'])->middleware('throttle:twofa');
     Route::post('/auth/2fa/confirm', [AuthController::class, 'confirmTotp'])->middleware('throttle:twofa');
 

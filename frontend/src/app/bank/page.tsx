@@ -13,8 +13,10 @@ const CURRENCY_LABELS: Record<string, string> = {
 
 const QUICK_ACTIONS = [
   { href: '/bank/send', label: 'Send Money', icon: '↗' },
-  { href: '/bank/transactions', label: 'Activity', icon: '≡' },
+  { href: '/bank/airtime', label: 'Airtime & Data', icon: '📱' },
+  { href: '/bank/crypto', label: 'Crypto', icon: '₿' },
   { href: '/logistics/send-parcel', label: 'Ship a Parcel', icon: '📦' },
+  { href: '/bank/transactions', label: 'Activity', icon: '≡' },
   { href: '/bank/settings', label: 'Security', icon: '⚙' },
 ];
 
@@ -104,7 +106,7 @@ export default function BankDashboardPage() {
       )}
 
       {/* Quick actions */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {QUICK_ACTIONS.map((action) => (
           <Link
             key={action.href}

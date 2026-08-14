@@ -3,6 +3,8 @@
 use App\Http\Middleware\Authenticate;
 use App\Http\Middleware\CamelCaseResponse;
 use App\Http\Middleware\EnsureActiveUser;
+use App\Http\Middleware\EnsureAdmin;
+use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\Idempotent;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -26,6 +28,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth' => Authenticate::class,
             'jwt.active' => EnsureActiveUser::class,
             'idempotent' => Idempotent::class,
+            'admin' => EnsureAdmin::class,
+            'superadmin' => EnsureSuperAdmin::class,
         ]);
 
         $middleware->api(

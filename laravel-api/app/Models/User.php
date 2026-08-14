@@ -17,7 +17,7 @@ class User extends Authenticatable implements JWTSubject
 
     protected $fillable = [
         'email', 'phone', 'password_hash', 'first_name', 'last_name', 'country',
-        'preferred_currency', 'kyc_tier', 'status', 'totp_secret', 'totp_enabled',
+        'preferred_currency', 'kyc_tier', 'status', 'role', 'totp_secret', 'totp_enabled',
         'business_name', 'business_reg_number',
     ];
 
@@ -55,6 +55,16 @@ class User extends Authenticatable implements JWTSubject
         return $this->password_hash;
     }
 
+    public function isAdmin(): bool
+    {
+        return in_array($this->role, ['ADMIN', 'SUPERADMIN'], true);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'SUPERADMIN';
+    }
+
     // --- Tymon\JWTAuth\Contracts\JWTSubject ---
 
     public function getJWTIdentifier()
@@ -67,6 +77,7 @@ class User extends Authenticatable implements JWTSubject
         return [
             'email' => $this->email,
             'kycTier' => $this->kyc_tier,
+            'role' => $this->role,
         ];
     }
 }

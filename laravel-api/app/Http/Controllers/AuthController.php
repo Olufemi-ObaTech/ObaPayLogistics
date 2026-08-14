@@ -69,6 +69,7 @@ class AuthController extends Controller
             'phone' => $user->phone,
             'country' => $user->country,
             'kycTier' => $user->kyc_tier,
+            'role' => $user->role,
             'totpEnabled' => $user->totp_enabled,
             'memberSince' => $user->created_at,
         ];

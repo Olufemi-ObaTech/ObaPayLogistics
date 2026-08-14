@@ -29,7 +29,7 @@ function newIdempotencyKey(): string {
 }
 
 interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   idempotent?: boolean;
 }
@@ -89,6 +89,7 @@ export interface Profile {
   phone: string;
   country: string;
   kycTier: 'TIER_1' | 'TIER_2' | 'TIER_3';
+  role: 'USER' | 'ADMIN' | 'SUPERADMIN';
   totpEnabled: boolean;
   memberSince: string;
 }
@@ -252,4 +253,119 @@ export function getCustomsStatus(shipmentId: string) {
     missingDocuments: string[];
     documents: { documentType: string; verificationStatus: string }[];
   }>(`/customs/status/${shipmentId}`);
+}
+
+// --- Airtime & Data (simulated VTU) ---------------------------------------
+
+export function getAirtimeNetworks() {
+  return apiRequest<string[]>('/airtime/networks');
+}
+
+export interface DataBundle { code: string; label: string; price: number }
+
+export function getDataBundles() {
+  return apiRequest<DataBundle[]>('/airtime/data-bundles');
+}
+
+export function buyAirtime(payload: { network: string; phoneNumber: string; currency: string; amount: number }) {
+  return apiRequest<Transaction>('/airtime/buy', { method: 'POST', body: payload, idempotent: true });
+}
+
+export function sellAirtime(payload: { network: string; phoneNumber: string; currency: string; amount: number }) {
+  return apiRequest<Transaction>('/airtime/sell', { method: 'POST', body: payload, idempotent: true });
+}
+
+export function buyData(payload: { network: string; phoneNumber: string; currency: string; bundleCode: string }) {
+  return apiRequest<Transaction>('/airtime/buy-data', { method: 'POST', body: payload, idempotent: true });
+}
+
+// --- Crypto (simulated — mock price feed, no real exchange) ---------------
+
+export interface CryptoPrice { symbol: string; name: string; priceUsd: number; change24hPct: number }
+export interface CryptoHolding { symbol: string; quantity: string; priceUsd: number; valueUsd: number }
+
+export function getCryptoPrices() {
+  return apiRequest<CryptoPrice[]>('/crypto/prices');
+}
+
+export function getCryptoHoldings() {
+  return apiRequest<CryptoHolding[]>('/crypto/holdings');
+}
+
+export function buyCrypto(payload: { symbol: string; currency: string; fiatAmount: number }) {
+  return apiRequest<Transaction>('/crypto/buy', { method: 'POST', body: payload, idempotent: true });
+}
+
+export function sellCrypto(payload: { symbol: string; currency: string; quantity: number }) {
+  return apiRequest<Transaction>('/crypto/sell', { method: 'POST', body: payload, idempotent: true });
+}
+
+// --- Admin / ops ------------------------------------------------------------
+
+export interface AdminStats {
+  totalUsers: number;
+  usersByStatus: Record<string, number>;
+  totalShipments: number;
+  shipmentsByStatus: Record<string, number>;
+  totalTransactions: number;
+  walletsByCurrency: { currency: string; total: string; held: string }[];
+  revenueByCurrency: { currency: string; fees: string; fxSpread: string }[];
+  pendingDocumentReviews: number;
+}
+
+export function getAdminStats() {
+  return apiRequest<AdminStats>('/admin/stats');
+}
+
+export interface AdminUser {
+  id: string; firstName: string; lastName: string; email: string; phone: string;
+  status: string; role: string; kycTier: string; country: string; createdAt: string;
+  walletsCount: number; shipmentsCount: number;
+}
+
+export interface Paginated<T> { data: T[]; currentPage: number; lastPage: number; total: number }
+
+export function getAdminUsers(params: { search?: string; status?: string; page?: number } = {}) {
+  const qs = new URLSearchParams(params as Record<string, string>).toString();
+  return apiRequest<Paginated<AdminUser>>(`/admin/users${qs ? `?${qs}` : ''}`);
+}
+
+export function getAdminUser(id: string) {
+  return apiRequest<{ user: AdminUser & { wallets: WalletBalance[] }; recentTransactions: Transaction[]; shipmentCount: number }>(`/admin/users/${id}`);
+}
+
+export function updateUserStatus(id: string, status: string) {
+  return apiRequest<AdminUser>(`/admin/users/${id}/status`, { method: 'PATCH', body: { status } });
+}
+
+export function getAdminTransactions(params: { type?: string; status?: string; page?: number } = {}) {
+  const qs = new URLSearchParams(params as Record<string, string>).toString();
+  return apiRequest<Paginated<Transaction>>(`/admin/transactions${qs ? `?${qs}` : ''}`);
+}
+
+export function getAdminShipments(params: { status?: string; page?: number } = {}) {
+  const qs = new URLSearchParams(params as Record<string, string>).toString();
+  return apiRequest<Paginated<Shipment>>(`/admin/shipments${qs ? `?${qs}` : ''}`);
+}
+
+export interface FxRate { id: string; baseCurrency: string; quoteCurrency: string; rate: string; source: string; fetchedAt: string }
+
+export function getAdminFxRates() {
+  return apiRequest<FxRate[]>('/admin/fx-rates');
+}
+
+export function upsertAdminFxRate(payload: { baseCurrency: string; quoteCurrency: string; rate: number }) {
+  return apiRequest<FxRate>('/admin/fx-rates', { method: 'POST', body: payload });
+}
+
+export function getAdminTeam() {
+  return apiRequest<AdminUser[]>('/admin/team');
+}
+
+export function promoteToAdmin(id: string) {
+  return apiRequest<AdminUser>(`/admin/team/${id}/promote`, { method: 'POST' });
+}
+
+export function demoteAdmin(id: string) {
+  return apiRequest<AdminUser>(`/admin/team/${id}/demote`, { method: 'POST' });
 }
